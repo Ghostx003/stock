@@ -9,3 +9,4 @@ tensorflow
 matplotlib
 seaborn
 tf-keras
+torch
