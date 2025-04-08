@@ -163,7 +163,20 @@ if run_analysis:
         if not full_text:
             continue
 
-        sentiment = pipe(full_text)[0]
+      # Replace the current sentiment analysis code
+try:
+    # Try the direct approach first
+    sentiment_result = pipe(full_text)
+    # Check if result is a list and not empty
+    if isinstance(sentiment_result, list) and sentiment_result:
+        sentiment = sentiment_result[0]
+    else:
+        # Handle unexpected output format
+        sentiment = {"label": "neutral", "score": 0.5}
+except Exception as e:
+    st.warning(f"Error analyzing sentiment: {e}")
+    # Provide a fallback sentiment
+    sentiment = {"label": "neutral", "score": 0.5}
         label, score = sentiment['label'], sentiment['score']
         date = article['pub_date'][:10]
         url = article.get('web_url', '')
