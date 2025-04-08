@@ -15,10 +15,66 @@ st.title("📰 NYT Stock Sentiment Analyzer with FinBERT")
 # === Load FinBERT Model ===
 @st.cache_resource(show_spinner="Loading FinBERT model...")
 def load_model():
-    return pipeline(task="text-classification", model="ProsusAI/finbert")
+    try:
+        import torch
+        # Explicitly set device to CPU if GPU not available
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        
+        from transformers import AutoModelForSequenceClassification, AutoTokenizer, pipeline
+        
+        # Try with more explicit parameters
+        return pipeline(
+            task="text-classification", 
+            model="ProsusAI/finbert",
+            device=device,
+            framework="pt"  # Explicitly choose PyTorch
+        )
+    except Exception as e:
+        st.warning(f"Error loading model with standard pipeline: {e}")
+        
+        try:
+            # Alternative: Load model components separately
+            from transformers import AutoModelForSequenceClassification, AutoTokenizer
+            
+            tokenizer = AutoTokenizer.from_pretrained("ProsusAI/finbert")
+            model = AutoModelForSequenceClassification.from_pretrained("ProsusAI/finbert")
+            
+            # Create a custom pipeline function
+            def custom_finbert(text):
+                inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True)
+                with torch.no_grad():
+                    outputs = model(**inputs)
+                
+                probabilities = torch.nn.functional.softmax(outputs.logits, dim=-1)
+                prediction = torch.argmax(probabilities, dim=-1).item()
+                score = probabilities[0][prediction].item()
+                
+                labels = {0: "positive", 1: "negative", 2: "neutral"}
+                return [{"label": labels[prediction], "score": score}]
+            
+            return custom_finbert
+        except Exception as e2:
+            st.error(f"Failed to load FinBERT model: {e2}")
+            
+            # Provide a simple fallback
+            def simple_sentiment(text):
+                # Very basic sentiment analysis as fallback
+                positive_words = ["increase", "higher", "rise", "up", "growth", "profit", "gain"]
+                negative_words = ["decrease", "lower", "fall", "down", "decline", "loss"]
+                
+                text_lower = text.lower()
+                pos_count = sum(word in text_lower for word in positive_words)
+                neg_count = sum(word in text_lower for word in negative_words)
+                
+                if pos_count > neg_count:
+                    return [{"label": "positive", "score": 0.75}]
+                elif neg_count > pos_count:
+                    return [{"label": "negative", "score": 0.75}]
+                else:
+                    return [{"label": "neutral", "score": 0.8}]
+                
+            return simple_sentiment
 
-pipe = load_model()
-st.success("FinBERT loaded successfully!")
 
 # === Sidebar Inputs ===
 st.sidebar.header("Search Settings")
