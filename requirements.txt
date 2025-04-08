@@ -8,3 +8,4 @@ scikit-learn
 tensorflow
 matplotlib
 seaborn
+tf-keras
