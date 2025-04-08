@@ -1,6 +1,6 @@
 requests
 streamlit
-transformers
+transformers==4.30.0
 pandas
 yfinance
 numpy
